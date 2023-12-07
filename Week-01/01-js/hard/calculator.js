@@ -17,33 +17,31 @@
 
 class Calculator {
 
+  // Constructor to initialize the calculator with an optional initial result.
   constructor(result=0){
     this.result = result;
-    this.chunks = []
-    this.temp = ''
-    this.postFixStack = []
-    this.opStack = []
-    this.resultStack = []
-    this.parenthesisStack = []; // create an empty stack
-    this.openingChars = ['(', '{', '['];
-    this.closingChars = [')', '}', ']'];
-    this.openings = 0
-    this.closings = 0
-    this.operators = ['+', '-', '*', '/', '(', ')']
   }
 
+  // Adds a number to the current result
   add(arg){
     this.result += arg
   }
 
+  // Subtracts a number from the current result.
   subtract(arg){
     this.result -= arg
   }
 
+  // Multiplies the current result by a number.
   multiply(arg){
     this.result *= arg
   }
 
+  /** 
+    * Divides the current result by a number.
+    * @param {number} arg - The number to divide by.
+    * @throws {Error} - Throws an error if dividing by zero.
+    */
   divide(arg){
     if(arg==0){
       throw new Error("Not divisible by 0")
@@ -51,34 +49,44 @@ class Calculator {
     this.result /= arg
   }
 
+  /**
+    * Resets the calculator to its initial state.
+    */
   clear(){
     this.result = 0
-    this.chunks = []
-    this.temp= ''
-    this.postFixStack = []
-    this.opStack = []
-    this.resultStack = []
-    this.openings = 0
-    this.closings = 0
   }
 
+  /**
+   * Returns the current result.
+   * @returns {number} - The current result.
+   */
   getResult(){
     return this.result
   }
 
+  /**
+   * Checks if the parentheses in the input string are balanced.
+   * @param {string} inputString - The input string containing mathematical expressions.
+   * @returns {boolean} - True if parentheses are balanced, false otherwise.
+   */
   isValidParenthesis(inputString) {
+
+    let parenthesisStack = [];
+    const openingChars = ['(', '{', '['];
+    const closingChars = [')', '}', ']'];
+
     for (const c of inputString) {
-        if (this.openingChars.includes(c)) {
-            const correspondingClosingChar = this.closingChars[this.openingChars.indexOf(c)];
-            this.parenthesisStack.push(correspondingClosingChar);
-        } else if (this.closingChars.includes(c)) {
-            if (this.parenthesisStack.length === 0 || this.parenthesisStack.pop() !== c) {
+        if (openingChars.includes(c)) {
+            const correspondingClosingChar = closingChars[openingChars.indexOf(c)];
+            parenthesisStack.push(correspondingClosingChar);
+        } else if (closingChars.includes(c)) {
+            if (parenthesisStack.length === 0 || parenthesisStack.pop() !== c) {
                 return false;
             }
         }
     }
 
-    return this.parenthesisStack.length === 0;
+    return parenthesisStack.length === 0;
   }
 
   calculate(inputString){
@@ -89,130 +97,143 @@ class Calculator {
       '+':1,
       '-':1, 
     }
+
+    let temp = ''
+    let chunks = []
+    let postFixStack = []
+    let operatorStack = []
+    let resultStack = []
+    const operators = ['+', '-', '*', '/', '(', ')']
+
     if(!this.isValidParenthesis(inputString)){
-      this.parenthesisStack = []
       throw new Error("Invalid Parenthesis")
     }
-
     else{
-      
-      // Purifying the inputString by remove spaces and performing formatting checks
+      /** 
+        * Purifying the inputString by remove spaces and performing formatting checks
+        * and creates a stack (mimicking) of chunked down operands, brackets and operators
+        */
       for(let i = 0; i<inputString.length; i++){
         if(inputString[i].toLowerCase() >= 'a' && inputString[i].toLowerCase() <= 'z'){
           throw new Error("Invalid Character");
         }
 
-        if(this.operators.includes(inputString[i])){
-          if(this.temp!=''){
-            this.chunks.push(parseFloat(this.temp))
-            this.temp = ''
+        if(operators.includes(inputString[i])){
+          if(temp!=''){
+            chunks.push(parseFloat(temp))
+            temp = ''
           }
-          this.chunks.push(inputString[i])
+          chunks.push(inputString[i])
         }else{
-          this.temp = this.temp + inputString[i]
+          temp = temp + inputString[i]
         }
         if(inputString[i] == ' '){
-          if(this.temp[0] != ' ' && this.temp!= ''){
-            this.chunks.push(parseFloat(this.temp))
+          if(temp[0] != ' ' && temp!= ''){
+            chunks.push(parseFloat(temp))
           }
-          this.temp = ''
+          temp = ''
         }
         if(i == inputString.length-1){
-          if(this.temp[0] != ' ' && this.temp!= ''){
-            this.chunks.push(parseFloat(this.temp))
+          if(temp[0] != ' ' && temp!= ''){
+            chunks.push(parseFloat(temp))
           }
         }
       }
 
-    //creating a postfixStack
-    for(let i=0; i<this.chunks.length; i++){
-      if(typeof this.chunks[i]==='number'){
-        this.postFixStack.push(this.chunks[i])
-      }
-
-      if(this.operators.includes(this.chunks[i]) && this.opStack[this.opStack.length - 1] === '('){
-        this.opStack.push(this.chunks[i])
-      }
-      
-      if(this.opStack.length == 0 && this.operators.includes(this.chunks[i])){
-        this.opStack.push(this.chunks[i])
-      }else if(this.operators.includes(this.chunks[i]) && precedence[this.chunks[i]] > precedence[this.opStack[this.opStack.length-1]]){
-        this.opStack.push(this.chunks[i])
-      }
-
-      if(this.chunks[i] === ')'){
-        while(true){
-          const removedOperator = this.opStack.pop()
-          if(removedOperator === '('){
-            break
-          }
-          if(removedOperator != '(' && removedOperator != ')'){
-            this.postFixStack.push(removedOperator)
-          }
-
+      /**
+       * creating a postfix stack (mimicking)
+       */
+      for(let i=0; i<chunks.length; i++){
+        if(typeof chunks[i]==='number'){
+          postFixStack.push(chunks[i])
         }
-      }
 
-      if (this.operators.includes(this.chunks[i]) && precedence[this.chunks[i]] < precedence[this.opStack[this.opStack.length - 1]]) {
-        while (
-            this.opStack.length > 0 &&
-            precedence[this.chunks[i]] < precedence[this.opStack[this.opStack.length - 1]]
-        ) {
-            const removedOperator = this.opStack.pop();
-            this.postFixStack.push(removedOperator);
+        if(operators.includes(chunks[i]) && operatorStack[operatorStack.length - 1] === '('){
+          operatorStack.push(chunks[i])
         }
-        this.opStack.push(this.chunks[i]);
-    }
-    }
+        
+        if(operatorStack.length == 0 && operators.includes(chunks[i])){
+          operatorStack.push(chunks[i])
+        }else if(operators.includes(chunks[i]) && precedence[chunks[i]] > precedence[operatorStack[operatorStack.length-1]]){
+          operatorStack.push(chunks[i])
+        }
 
-    // for transferring left out operators to postfixStack
-    while(true){
-      const removedOperator = this.opStack.pop()
-      this.postFixStack.push(removedOperator)
-
-      if(this.opStack.length==0){
-        break
-      }
-    }
-
-    // processing postfixStack to generate result
-    while(this.postFixStack.length > 0){
-      const removedNumber = this.postFixStack.shift()
-      if(typeof removedNumber === 'number'){
-        this.resultStack.push(removedNumber)
-      }
-
-      if(this.operators.includes(removedNumber)){
-        const num1 = this.resultStack.pop()
-        const num2 = this.resultStack.pop()
-        let evaluation = 0
-        switch(removedNumber){
-          case '+':
-            evaluation = num2+num1
-            this.resultStack.push(evaluation)
-            break
-          case '-':
-            evaluation = num2-num1
-            this.resultStack.push(evaluation)
-            break
-          case '/':
-            if(num1 == 0){
-              throw new Error("Not divisible by 0")
+        if(chunks[i] === ')'){
+          while(true){
+            const removedOperator = operatorStack.pop()
+            if(removedOperator === '('){
+              break
             }
-            evaluation = num2/num1
-            this.resultStack.push(evaluation)
-            break
-          case '*':
-            evaluation = num2*num1
-            this.resultStack.push(evaluation)
-            break
+            if(removedOperator != '(' && removedOperator != ')'){
+              postFixStack.push(removedOperator)
+            }
+
+          }
+        }
+
+        if (operators.includes(chunks[i]) && precedence[chunks[i]] < precedence[operatorStack[operatorStack.length - 1]]) {
+          while (
+              operatorStack.length > 0 &&
+              precedence[chunks[i]] < precedence[operatorStack[operatorStack.length - 1]]
+          ) {
+              const removedOperator = operatorStack.pop();
+              postFixStack.push(removedOperator);
+          }
+          operatorStack.push(chunks[i]);
         }
       }
-    }
 
-    this.result = this.resultStack[0]
-  
-  }}
+      /**
+       * Takes care of transferring any remaining operators to postfixStack
+       */
+      while(true){
+        const removedOperator = operatorStack.pop()
+        postFixStack.push(removedOperator)
+
+        if(operatorStack.length==0){
+          break
+        }
+      }
+
+      /**
+       * Processes the postfix stack to calculate the answer
+       */
+      while(postFixStack.length > 0){
+        const removedNumber = postFixStack.shift()
+        if(typeof removedNumber === 'number'){
+          resultStack.push(removedNumber)
+        }
+
+        if(operators.includes(removedNumber)){
+          const num1 = resultStack.pop()
+          const num2 = resultStack.pop()
+          let evaluation = 0
+          switch(removedNumber){
+            case '+':
+              evaluation = num2+num1
+              resultStack.push(evaluation)
+              break
+            case '-':
+              evaluation = num2-num1
+              resultStack.push(evaluation)
+              break
+            case '/':
+              if(num1 == 0){
+                throw new Error("Not divisible by 0")
+              }
+              evaluation = num2/num1
+              resultStack.push(evaluation)
+              break
+            case '*':
+              evaluation = num2*num1
+              resultStack.push(evaluation)
+              break
+          }
+        }
+      }
+      this.result = resultStack[0]
+    }
+  }
 }
 
 module.exports = Calculator;
